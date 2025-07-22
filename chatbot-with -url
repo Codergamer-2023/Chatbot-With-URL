@@ -1,0 +1,27 @@
+
+# web based loader
+from langchain_community.document_loaders import WebBaseLoader
+import bs4
+
+## load,chunk and index the content of the html page
+
+loader=WebBaseLoader(web_paths=["https://www.codescaler.com"])
+
+text_documents=loader.load()
+
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+text_splitter=RecursiveCharacterTextSplitter(chunk_size=1000,chunk_overlap=200)
+documents=text_splitter.split_documents(text_documents)
+documents[:5]
+
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores import Chroma
+
+embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+vector_db = Chroma.from_documents(documents, embedding_model)
+
+query = "who is the cofounder?"
+retireved_results=vector_db.similarity_search(query)
+print(retireved_results[0].page_content)
+
