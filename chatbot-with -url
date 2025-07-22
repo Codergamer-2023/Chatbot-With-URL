@@ -1,5 +1,4 @@
-
-# web based loader
+b based loader
 from langchain_community.document_loaders import WebBaseLoader
 import bs4
 
@@ -21,7 +20,42 @@ embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-Mi
 
 vector_db = Chroma.from_documents(documents, embedding_model)
 
-query = "who is the cofounder?"
-retireved_results=vector_db.similarity_search(query)
-print(retireved_results[0].page_content)
+system_persona = {
+ "role": "system", 
+    "content": """You are an intelligent assistant trained to extract precise and relevant information from URLs. Your primary goal is to provide **accurate, to-the-point answers** strictly based on the content retrieved from the web page. Do not hallucinate or guess information that is not present on the page.
 
+If the page does not contain enough detail to answer the user’s query, respond clearly that the information is unavailable in the provided source.
+
+Avoid:
+- Adding generic or unrelated content
+- Providing assumptions
+- Summarizing content not relevant to the user’s question
+
+Focus on:
+- Extracting factual, contextually correct information from the URL
+- Quoting directly or paraphrasing only what’s found on the page
+- Staying concise, clear, and helpful
+
+"""
+}
+query = "who is the co founder?"
+retireved_results=vector_db.similarity_search(query)
+context = "/n/n".join([doc.page_content for doc in retireved_results])
+
+from groq import Groq
+client = Groq(api_key="gsk_UNkrSjYAu84KZuil9FR2WGJdNIyJF")
+messages = [
+   system_persona,
+   {
+       "role":"user",
+       "content": f"Using the following context, answer the question:\n\n{context}\n\nQ: {query}"
+   }
+]
+response = client.chat.completions.create(
+   model="llama-3.3-70b-versatile", 
+   messages=messages,
+   temperature=0.7,
+   max_completion_tokens=300
+)
+
+print(response.choices[0].message.content)
