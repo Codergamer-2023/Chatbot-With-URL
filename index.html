@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>URL Chatbot Setup</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>🌐 Web Chatbot Setup</h1>
+    <form id="setupForm">
+      <input type="url" id="urlInput" placeholder="Enter website URL" required />
+      <textarea id="personaInput" placeholder="Enter assistant persona..." required></textarea>
+      <button type="submit">Start Chat</button>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('setupForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const url = document.getElementById('urlInput').value.trim();
+      const persona = document.getElementById('personaInput').value.trim();
+      if (!url || !persona) return alert("All fields are required.");
+
+      // Generate new session ID
+      const sessionRes = await fetch("http://localhost:5000/new_session");
+      const sessionData = await sessionRes.json();
+      const sessionId = sessionData.session_id;
+
+      // Store session info in localStorage
+      localStorage.setItem("url", url);
+      localStorage.setItem("persona", persona);
+      localStorage.setItem("session_id", sessionId);
+      localStorage.setItem("chat_history_" + sessionId, JSON.stringify([])); // Reset chat
+
+      // Send URL and persona to backend
+      try {
+        const response = await fetch("http://localhost:5000/upload_url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, persona })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          window.location.href = "chat.html";
+        } else {
+          alert("Error: " + (result.error || "Unknown error"));
+        }
+      } catch (err) {
+        alert("Network error: " + err.message);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat with WebBot</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      <h2>💬 Chat with WebBot</h2>
+      <button onclick="downloadChat()">Export Chat</button>
+    </div>
+    <div class="chat-box" id="chatBox"></div>
+    <form id="chatForm">
+      <input type="text" id="userInput" placeholder="Type your question..." autocomplete="off" required />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
+  <script>
+    const sessionId = localStorage.getItem("session_id");
+    const chatHistoryKey = "chat_history_" + sessionId;
+    const chatBox = document.getElementById("chatBox");
+
+    const renderChat = () => {
+      const history = JSON.parse(localStorage.getItem(chatHistoryKey)) || [];
+      chatBox.innerHTML = '';
+      history.forEach(entry => {
+        const userMsg = `<div class="user"><b>You:</b> ${entry.user}</div>`;
+        const botMsg = `<div class="bot"><b>Bot:</b> ${entry.bot}</div>`;
+        chatBox.innerHTML += userMsg + botMsg;
+      });
+      chatBox.scrollTop = chatBox.scrollHeight;
+    };
+
+    renderChat();
+
+    document.getElementById('chatForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const input = document.getElementById('userInput');
+      const question = input.value.trim();
+      if (!question) return;
+
+      input.value = '';
+      let history = JSON.parse(localStorage.getItem(chatHistoryKey)) || [];
+      history.push({ user: question, bot: "..." });
+      localStorage.setItem(chatHistoryKey, JSON.stringify(history));
+      renderChat();
+
+      const response = await fetch("http://localhost:5000/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: question,
+          history: history.slice(0, -1)
+        })
+      });
+
+      const result = await response.json();
+      history[history.length - 1].bot = result.answer || "[No answer]";
+      localStorage.setItem(chatHistoryKey, JSON.stringify(history));
+      renderChat();
+    });
+
+    const downloadChat = async () => {
+      const history = JSON.parse(localStorage.getItem(chatHistoryKey)) || [];
+      const response = await fetch("http://localhost:5000/export_chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ history })
+      });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "chat_history.xlsx";
+      a.click();
+    };
+  </script>
+</body>
+</html>
