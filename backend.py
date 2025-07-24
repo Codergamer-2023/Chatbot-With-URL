@@ -13,9 +13,40 @@ app = Flask(__name__)
 CORS(app)
 
 embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-groq_client = Groq(api_key="Your_API_Key")  
+groq_client = Groq(api_key="")  
 vector_db = None
 system_persona = None
+
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
+
+def crawl_website(start_url, max_links=30):
+    visited = set()
+    to_visit = [start_url]
+    domain = urlparse(start_url).netloc
+
+    while to_visit and len(visited) < max_links:
+        url = to_visit.pop(0)
+        if url in visited:
+            continue
+        try:
+            response = requests.get(url, timeout=10)
+            if response.status_code != 200:
+                continue
+            visited.add(url)
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+            for link_tag in soup.find_all('a', href=True):
+                href = link_tag['href']
+                full_url = urljoin(url, href)
+                if urlparse(full_url).netloc == domain and full_url not in visited:
+                    to_visit.append(full_url)
+        except Exception as e:
+            print(f"Failed to crawl {url}: {e}")
+
+    return list(visited)
+
 
 @app.route('/upload_url', methods=['POST'])
 def upload_url():
@@ -27,8 +58,10 @@ def upload_url():
         
         url = data['url']
         persona = data['persona']
+        all_urls = crawl_website(url, max_links=30)
+
         
-        loader = WebBaseLoader(web_paths=[url])
+        loader = WebBaseLoader(web_paths=[all_urls])
         web_documents = loader.load()
         
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
