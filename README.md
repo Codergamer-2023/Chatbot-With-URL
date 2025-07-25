@@ -1,99 +1,110 @@
-# 🌐 URL-based RAG Chatbot with Persona
+# 🌐 Website URL-Based RAG Chatbot with Persona (Full Site Crawling Enabled)
 
-This project is a modern, session-based web chatbot that allows users to:
-- Input a URL and a custom assistant persona
-- Automatically fetch and chunk web content using LangChain
-- Embed content with HuggingFace Sentence Transformers
-- Perform similarity search and respond using Groq LLM API
-- Chat in a modern interface with saved history and Excel export
+This project is a powerful RAG (Retrieval-Augmented Generation) chatbot system that crawls all internal pages of a website, extracts the text, embeds it into a vector store, and allows users to chat with the content using an intelligent assistant with a custom persona. Built using LangChain, HuggingFace Embeddings, Groq API, and Flask.
 
 ---
 
 ## 🚀 Features
 
-✅ URL-based RAG with HuggingFace Embeddings  
-✅ Persona-driven Groq LLM response logic  
-✅ Two-page UI: URL + Persona form → Chat UI  
-✅ Session ID for isolated chat history  
-✅ `localStorage` chat saving across reloads  
-✅ Smooth scrolling, clean UI, Excel chat export  
+- 🌍 **Crawls full websites** (not just a single URL) using `requests` + `BeautifulSoup`
+- 📄 Extracts and parses HTML content using LangChain’s `WebBaseLoader`
+- ✂️ Splits long documents into overlapping chunks
+- 🧠 Embeds chunks using HuggingFace models into a Chroma vector store
+- 🤖 Uses Groq LLM to generate accurate, contextual answers
+- 🧑‍💼 Accepts a custom assistant persona
+- 🧾 LocalStorage-based chat memory per session
+- 💾 Chat history can be exported to `.xlsx`
+- 🖥️ Modern 2-page UI (URL & Persona → Chat)
 
 ---
 
-## 📁 Files Overview
+## 🧱 File Overview
 
-- `index.html` — Page 1: URL and persona input  
-- `chat.html` — Page 2: Chat interface  
-- `style.css` — Modern styling shared by both pages  
-- `backend.py` — Flask backend handling all endpoints  
-- `ChatbotWithUrl.py` — Web content processing + embedding logic
+| File                 | Description                                 |
+|----------------------|---------------------------------------------|
+| `backend.py`         | Flask backend with crawling and QA endpoints |
+| `index.html`         | Page to input URL and persona               |
+| `chat.html`          | Chat interface                              |
+| `style.css`          | Modern CSS styling                          |
 
 ---
 
 ## 🐍 Requirements
 
-**Python 3.10.x is required.**
+- **Python 3.10.x** recommended
 
-### 🔧 Setup Instructions
+### 📦 Install Dependencies
 
-1. **Create a virtual environment:**
 ```bash
 python3.10 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-```
-
-2. **Install dependencies:**
-```bash
+source .venv/bin/activate
 pip install flask flask-cors langchain-community langchain_huggingface \
-sentence-transformers chromadb beautifulsoup4 python-dotenv pandas openpyxl
+sentence-transformers chromadb beautifulsoup4 python-dotenv pandas openpyxl requests
 ```
-
-3. **Set your Groq API key** directly in `backend.py` or `ChatbotWithUrl.py` where the `Groq` client is initialized.
 
 ---
 
-## ▶️ Run the Application
+## ▶️ How to Use
 
+1. **Run the Backend:**
 ```bash
-python backend.py
+python backend_full_crawl.py
 ```
 
-Flask will start on: `http://localhost:5000`
+2. **Launch the Frontend:**
 
-Then open `index.html` in your browser to begin.
-
-(Optional) Serve HTML with:
+- Option A: Open `index.html` in browser
+- Option B: Serve frontend via local server:
 ```bash
 python3 -m http.server 5500
 ```
-
-Visit: `http://localhost:5500/index.html`
-
----
-
-## 🧪 API Endpoints
-
-- `POST /upload_url` — Load & embed URL content  
-- `POST /query` — Chat query + Groq response  
-- `GET /new_session` — Generate new session ID  
-- `POST /export_chat` — Export chat to Excel  
-- `GET /health` — Check service status  
+Then go to: `http://localhost:5500/index.html`
 
 ---
 
+## 🔍 Crawling Logic
 
-## ✨ Possible Improvements
-
-- RAG file upload hybrid (URL + PDF)
-- LLM streaming for faster response feel
-- Better error handling for CORS/Timeouts
-- User login and saved conversation history
+- The server crawls internal links from the given root URL (up to 30 pages)
+- Relative links are converted to absolute using `urljoin`
+- Invalid links like `#`, `mailto:`, or `javascript:` are ignored
+- Unique valid URLs are passed to `WebBaseLoader` for content extraction
 
 ---
 
-## 🤝 Credits
+## 🔗 API Endpoints
 
-- 🧠 [LangChain](https://github.com/langchain-ai/langchain)
-- 🤗 [HuggingFace](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
-- 💬 [Groq API](https://console.groq.com/)
-- 🧽 [BeautifulSoup](https://pypi.org/project/beautifulsoup4/)
+- `POST /upload_url`: Accepts JSON with `url` and `persona`, crawls and indexes content
+- `POST /query`: Accepts a `query` and `history`, returns an LLM-generated answer
+- `GET /new_session`: Generates a new session ID
+- `POST /export_chat`: Exports chat to Excel
+- `GET /health`: Health check
+
+---
+
+## 🧠 Sample Use Case (Amity University)
+
+**Persona Example:**
+```
+You are an academic assistant trained to extract accurate information about Amity University Mohali based on their website. Do not hallucinate answers. If the content is unavailable, say so politely.
+```
+
+**Sample Questions:**
+- What programs are offered at Amity University Mohali?
+- How do I apply for B.Tech or MBA?
+- Are scholarships available?
+- What facilities does the campus offer?
+
+---
+
+## 🔐 Note
+
+- Replace `your_groq_api_key_here` in `backend_full_crawl.py` with your actual [Groq API Key](https://console.groq.com/)
+
+---
+
+## 🤝 Acknowledgments
+
+- [LangChain](https://github.com/langchain-ai/langchain)
+- [HuggingFace Transformers](https://huggingface.co/sentence-transformers)
+- [Groq API](https://console.groq.com/)
+- [BeautifulSoup](https://pypi.org/project/beautifulsoup4/)
